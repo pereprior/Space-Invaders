@@ -31,6 +31,7 @@ SCREEN_LEFT_MARGIN = 5
 ENEMY_APPEAR_MIN_RANGE = 50
 ENEMY_APPEAR_MAX_RANGE = 150
 ENEMY_COUNT = 6
+ENEMY_DOWN_STEP = 40
 PLAYER_START_X = 360
 PLAYER_START_Y = 480
 PLAYER_SPEED = 5
@@ -54,20 +55,34 @@ pygame.display.set_icon(icon)
 
 
 '''
+     _____________________
+    |                     |
+    |     SET SOUND       |
+    |_____________________|
+        
+    '''
+mixer.music.load('game/ost/main_theme.wav')
+mixer.music.play(-1)
+
+
+'''
  _____________________
 |                     |
 |    PLAYER VALUES    |
 |_____________________|
     
 '''
-playerImg = pygame.image.load('game/images/player.png')
-playerX = PLAYER_START_X
-playerX_change = 0
-playerY = PLAYER_START_Y
+class Player:
+    def __init__(self, x, y):
+        self.image = pygame.image.load('game/images/player.png')
+        self.x = x
+        self.y = y
+        self.x_change = 0
 
-def player(x,y):
-    screen.blit(playerImg, (x,y))
+    def draw(self):
+        screen.blit(self.image, (self.x, self.y))
 
+player = Player(PLAYER_START_X, PLAYER_START_Y)
 
 '''
  _____________________
@@ -76,21 +91,24 @@ def player(x,y):
 |_____________________|
     
 '''
-enemyImg = []
-enemyX = []
-enemyX_change = []
-enemyY = []
-enemyY_change = []
+
+class Enemy:
+    def __init__(self, x, y):
+        self.image = pygame.image.load('game/images/enemy.png')
+        self.x = x
+        self.x_change = ENEMY_SPEED
+        self.y = y
+        self.y_change = ENEMY_DOWN_STEP
+            
+    def draw(self):
+        screen.blit(self.image, (self.x, self.y))
+
+enemies = []
 
 for i in range(ENEMY_COUNT):
-    enemyImg.append(pygame.image.load('game/images/enemy.png'))
-    enemyX.append(random.randint(SCREEN_LEFT_MARGIN, SCREEN_RIGHT_MARGIN))
-    enemyX_change.append(ENEMY_SPEED)
-    enemyY.append(random.randint(ENEMY_APPEAR_MIN_RANGE, ENEMY_APPEAR_MAX_RANGE))
-    enemyY_change.append(40)
-
-def enemy(x, y, i):
-    screen.blit(enemyImg[i], (x, y))
+    x = random.randint(SCREEN_LEFT_MARGIN, SCREEN_RIGHT_MARGIN)
+    y = random.randint(ENEMY_APPEAR_MIN_RANGE, ENEMY_APPEAR_MAX_RANGE)
+    enemies.append(Enemy(x,y))
 
 
 '''
@@ -162,17 +180,6 @@ while running:
     '''
      _____________________
     |                     |
-    |     SET SOUND       |
-    |_____________________|
-        
-    '''
-    mixer.music.load('game/ost/main_theme.wav')
-    mixer.music.play(-1)
-    
-    
-    '''
-     _____________________
-    |                     |
     |  SET KEYBOARD KEYS  |
     |_____________________|
         
@@ -184,20 +191,20 @@ while running:
         # User move keys
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                playerX_change = -PLAYER_SPEED
+                player.x_change = -PLAYER_SPEED
             if event.key == pygame.K_RIGHT:
-                playerX_change = PLAYER_SPEED
+                player.x_change = PLAYER_SPEED
             if event.key == pygame.K_SPACE:
                 if attack_state is False:
                     bulletSound = mixer.Sound("game/ost/shot.wav")
                     bulletSound.play()
-                    bulletX = playerX
+                    bulletX = player.x
                     fire_bullet(bulletX, bulletY)
         
         # Shot keys
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-                playerX_change = 0
+                player.x_change = 0
              
     
     '''
@@ -207,11 +214,11 @@ while running:
     |_____________________|
         
     '''
-    playerX += playerX_change
-    if playerX < SCREEN_LEFT_MARGIN:
-        playerX = SCREEN_LEFT_MARGIN
-    elif playerX > SCREEN_RIGHT_MARGIN:
-        playerX = SCREEN_RIGHT_MARGIN
+    player.x += player.x_change
+    if player.x < SCREEN_LEFT_MARGIN:
+        player.x = SCREEN_LEFT_MARGIN
+    elif player.x > SCREEN_RIGHT_MARGIN:
+        player.x = SCREEN_RIGHT_MARGIN
     
     
     '''
@@ -221,36 +228,33 @@ while running:
     |_____________________|
         
     '''
-    for i in range(ENEMY_COUNT):
+    for enemy_instance in enemies:
 
         # Manage Game Over
-        if enemyY[i] > 440:
-            for j in range(ENEMY_COUNT):
-                enemyY[j] = 2000
+        if enemy_instance.y > 440:
+            for enemy_instance in enemies:
+                enemy_instance.y = 2000
             game_over_text()
             break
 
         # Enemy moves
-        enemyX[i] += enemyX_change[i]
-        if enemyX[i] <= SCREEN_LEFT_MARGIN:
-            enemyX_change[i] = ENEMY_SPEED
-            enemyY[i] += enemyY_change[i]
-        elif enemyX[i] >= SCREEN_RIGHT_MARGIN:
-            enemyX_change[i] = -ENEMY_SPEED
-            enemyY[i] += enemyY_change[i]
+        enemy_instance.x += enemy_instance.x_change
+        if enemy_instance.x <= SCREEN_LEFT_MARGIN or enemy_instance.x >= SCREEN_RIGHT_MARGIN:
+            enemy_instance.x_change = -enemy_instance.x_change
+            enemy_instance.y += enemy_instance.y_change
 
-        # Bullet colission
-        collision = isCollision(enemyX[i], enemyY[i], bulletX, bulletY)
+        # Bullet collision
+        collision = isCollision(enemy_instance.x, enemy_instance.y, bulletX, bulletY)
         if collision:
             explosionSound = mixer.Sound("game/ost/explosion.wav")
             explosionSound.play()
             bulletY = PLAYER_START_Y
             attack_state = False
             score_value += 10
-            enemyX[i] = random.randint(SCREEN_LEFT_MARGIN, SCREEN_RIGHT_MARGIN)
-            enemyY[i] = random.randint(ENEMY_APPEAR_MIN_RANGE, ENEMY_APPEAR_MAX_RANGE)
+            enemy_instance.x = random.randint(SCREEN_LEFT_MARGIN, SCREEN_RIGHT_MARGIN)
+            enemy_instance.y = random.randint(ENEMY_APPEAR_MIN_RANGE, ENEMY_APPEAR_MAX_RANGE)
 
-        enemy(enemyX[i], enemyY[i], i)
+        enemy_instance.draw()
     
     
     '''
@@ -276,6 +280,6 @@ while running:
     |_____________________|
         
     '''
-    player(playerX,playerY)
+    player.draw()
     show_score(textX, testY)
     pygame.display.update()
