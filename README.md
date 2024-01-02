@@ -1,2 +1,2 @@
-# Space-Invaders
-Mi primer proyecto en Python
+# Tutorial de Python para Principiantes
+## Space Invaders
