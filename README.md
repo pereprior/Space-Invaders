@@ -3,9 +3,9 @@
 # Tutorial de Python para Principiantes
 ### Space Invaders
 
-## About 🗣️
+## About :flying_saucer:
 
-|       |       |
+|               |                  |
 | ------------- | ---------------- |
 | Language      | English          |
 | Code          | Python (pygame)  |
